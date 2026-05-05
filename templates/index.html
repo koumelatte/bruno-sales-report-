@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>日次売上日報</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1F4E79;
+      color: white;
+      padding: 16px 20px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #1F4E79;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e8f0f8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .required-mark {
+      color: #e74c3c;
+      margin-left: 3px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #dde3ea;
+      border-radius: 8px;
+      font-size: 16px;
+      color: #222;
+      background: #fafbfc;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #2E75B6;
+      background: white;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%23666'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    textarea {
+      height: 80px;
+      resize: vertical;
+    }
+
+    .input-with-unit {
+      position: relative;
+    }
+
+    .input-with-unit input {
+      padding-right: 50px;
+    }
+
+    .unit {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #888;
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 16px;
+      background: #1F4E79;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background 0.2s;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-submit:active {
+      background: #163d5e;
+    }
+
+    .btn-submit:disabled {
+      background: #8faec9;
+      cursor: not-allowed;
+    }
+
+    .toast {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      z-index: 100;
+      min-width: 280px;
+    }
+
+    .toast .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .toast .msg {
+      font-size: 16px;
+      font-weight: bold;
+      color: #222;
+      margin-bottom: 6px;
+    }
+
+    .toast .sub {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .toast.error .icon-img { color: #e74c3c; }
+
+    .toast-btn {
+      padding: 10px 32px;
+      background: #1F4E79;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 99;
+    }
+
+    .optional-tag {
+      font-size: 11px;
+      color: #999;
+      font-weight: normal;
+      margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<header>📊 日次売上日報</header>
+
+<div class="container">
+
+  <div class="section">
+    <div class="section-title">基本情報</div>
+    <div class="field">
+      <label>日付 <span class="required-mark">*</span></label>
+      <input type="date" id="date" name="date" value="{{ today }}" required>
+    </div>
+    <div class="field">
+      <label>天気 <span class="required-mark">*</span></label>
+      <select id="weather" name="weather" required>
+        <option value="">選択してください</option>
+        <option value="晴れ">☀️ 晴れ</option>
+        <option value="曇り">☁️ 曇り</option>
+        <option value="雨">🌧 雨</option>
+        <option value="雪">❄️ 雪</option>
+        <option value="晴れ/曇り">⛅ 晴れ/曇り</option>
+        <option value="曇り/雨">🌦 曇り/雨</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>気温 <span class="optional-tag">任意</span></label>
+      <div class="input-with-unit">
+        <input type="number" id="temp" name="temp" placeholder="例: 18.5" step="0.1">
+        <span class="unit">℃</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">売上・客数</div>
+    <div class="field">
+      <label>前年実績（税抜）<span class="optional-tag">任意</span></label>
+      <div class="input-with-unit">
+        <input type="number" id="prev_sales" name="prev_sales" placeholder="例: 580000" min="0">
+        <span class="unit">円</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>本年売上（税抜）<span class="required-mark">*</span></label>
+      <div class="input-with-unit">
+        <input type="number" id="sales" name="sales" placeholder="例: 620000" min="0" required>
+        <span class="unit">円</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>客数 <span class="required-mark">*</span></label>
+      <div class="input-with-unit">
+        <input type="number" id="guests" name="guests" placeholder="例: 320" min="0" required>
+        <span class="unit">人</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>前年客数 <span class="optional-tag">任意</span></label>
+      <div class="input-with-unit">
+        <input type="number" id="prev_guests" name="prev_guests" placeholder="例: 305" min="0">
+        <span class="unit">人</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">処分率</div>
+    <div class="field">
+      <label>販売残 <span class="optional-tag">任意</span></label>
+      <div class="input-with-unit">
+        <input type="number" id="unsold" name="unsold" placeholder="例: 12000" min="0">
+        <span class="unit">円</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>製造ロス <span class="optional-tag">任意</span></label>
+      <div class="input-with-unit">
+        <input type="number" id="mfg_loss" name="mfg_loss" placeholder="例: 3000" min="0">
+        <span class="unit">円</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>試食金額 <span class="optional-tag">任意</span></label>
+      <div class="input-with-unit">
+        <input type="number" id="tasting" name="tasting" placeholder="例: 1500" min="0">
+        <span class="unit">円</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">メモ</div>
+    <div class="field">
+      <textarea id="memo" name="memo" placeholder="特記事項・申し送りなど..."></textarea>
+    </div>
+  </div>
+
+  <button class="btn-submit" id="submitBtn" onclick="submitForm()">
+    送信する
+  </button>
+
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="toast" id="toast">
+  <div class="icon" id="toastIcon"></div>
+  <div class="msg" id="toastMsg"></div>
+  <div class="sub" id="toastSub"></div>
+  <button class="toast-btn" onclick="closeToast()">OK</button>
+</div>
+
+<script>
+async function submitForm() {
+  const btn = document.getElementById("submitBtn");
+
+  // バリデーション
+  const date = document.getElementById("date").value;
+  const weather = document.getElementById("weather").value;
+  const sales = document.getElementById("sales").value;
+  const guests = document.getElementById("guests").value;
+
+  if (!date || !weather || !sales || !guests) {
+    showToast("⚠️", "入力エラー", "必須項目（日付・天気・売上・客数）を入力してください", false);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "送信中...";
+
+  const formData = new FormData();
+  ["date","weather","temp","prev_sales","sales","guests","prev_guests","unsold","mfg_loss","tasting","memo"]
+    .forEach(id => formData.append(id, document.getElementById(id).value));
+
+  try {
+    const res = await fetch("/submit", { method: "POST", body: formData });
+    const data = await res.json();
+    if (data.success) {
+      showToast("✅", "送信完了！", data.message, true);
+      resetForm();
+    } else {
+      showToast("❌", "送信失敗", data.message, false);
+    }
+  } catch(e) {
+    showToast("❌", "通信エラー", "ネットワークを確認してください", false);
+  }
+
+  btn.disabled = false;
+  btn.textContent = "送信する";
+}
+
+function showToast(icon, msg, sub, isSuccess) {
+  document.getElementById("toastIcon").textContent = icon;
+  document.getElementById("toastMsg").textContent = msg;
+  document.getElementById("toastSub").textContent = sub;
+  document.getElementById("overlay").style.display = "block";
+  document.getElementById("toast").style.display = "block";
+}
+
+function closeToast() {
+  document.getElementById("overlay").style.display = "none";
+  document.getElementById("toast").style.display = "none";
+}
+
+function resetForm() {
+  ["temp","prev_sales","sales","guests","prev_guests","unsold","mfg_loss","tasting","memo"]
+    .forEach(id => document.getElementById(id).value = "");
+  document.getElementById("weather").value = "";
+  // 日付は今日のまま
+}
+</script>
+
+</body>
+</html>
